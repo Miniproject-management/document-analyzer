@@ -34,8 +34,7 @@ public class DocumentAnalyzerSecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/health").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
-                        .requestMatchers("/api/hr/**")
-                        .hasAnyRole("ADMIN", "MANAGER")
+                        .requestMatchers("/api/hr/**").authenticated()
                         .anyRequest().denyAll()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
