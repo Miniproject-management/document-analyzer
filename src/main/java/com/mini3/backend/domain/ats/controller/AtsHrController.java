@@ -1,14 +1,17 @@
 package com.mini3.backend.domain.ats.controller;
 
 import com.mini3.backend.domain.ats.dto.AtsAnalysisDto;
+import com.mini3.backend.domain.ats.dto.AtsAnalyzeRequest;
 import com.mini3.backend.domain.ats.dto.AtsApplicantDto;
 import com.mini3.backend.domain.ats.dto.AtsHrDashboardDto;
 import com.mini3.backend.domain.ats.service.AtsService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -37,8 +40,12 @@ public class AtsHrController {
         return ResponseEntity.ok(atsService.getApplicantDetail(applicantId));
     }
 
-    @PostMapping("/{applicantId}/analyze") // HR 이 분석하기 눌렀을 때 호출하는 API
-    public ResponseEntity<AtsAnalysisDto.AnalyzeResult> analyzeApplicant(@PathVariable Long applicantId) {
-        return ResponseEntity.ok(atsService.analyzeApplicantResume(applicantId));
+    @PostMapping("/{applicantId}/analyze")
+    public ResponseEntity<AtsAnalysisDto.AnalyzeResult> analyzeApplicant(
+            @PathVariable Long applicantId,
+            @RequestBody(required = false) @Valid AtsAnalyzeRequest request
+    ) {
+        String jobDescription = request != null ? request.getJobDescription() : null;
+        return ResponseEntity.ok(atsService.analyzeApplicantResume(applicantId, jobDescription));
     }
 }

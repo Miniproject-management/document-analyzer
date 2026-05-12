@@ -25,6 +25,8 @@ public final class AtsAnalysisDto {
         private String resultJson; // 결과 JSON
         private Integer overallScore; // 총점
         private String failureMessage; // 실패 메시지
+        /** 분석 요청 시 HR이 넣은 직무·평가 기준 (저장된 스냅샷) */
+        private String jobCriteriaSnapshot;
         private LocalDateTime analyzedAt; // 분석 일시
 
         public static Analysis from(ResumeAnalysis entity) { // 엔티티를 DTO로 변환
@@ -39,6 +41,7 @@ public final class AtsAnalysisDto {
                     .resultJson(entity.getResultJson())
                     .overallScore(entity.getOverallScore())
                     .failureMessage(entity.getFailureMessage())
+                    .jobCriteriaSnapshot(entity.getJobCriteriaSnapshot())
                     .analyzedAt(entity.getAnalyzedAt())
                     .build();
         }

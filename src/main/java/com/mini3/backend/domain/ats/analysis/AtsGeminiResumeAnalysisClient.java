@@ -31,7 +31,7 @@ public class AtsGeminiResumeAnalysisClient {
     @Value("${spring.ai.google.genai.api-key:}")
     private String apiKey;
 
-    @Value("${app.gemini.model:gemini-1.5-flash}")
+    @Value("${app.gemini.model:gemini-2.5-flash}")
     private String modelId;
 
     public AtsGeminiResumeAnalysisClient(ObjectMapper objectMapper) {
@@ -42,16 +42,22 @@ public class AtsGeminiResumeAnalysisClient {
     }
 
     /**
+     * @param jobCriteriaOrNull HR 직무·평가 기준 (비어 있으면 일반 채용 관점)
      * @return 모델이 반환한 JSON 객체 (overallScore, summary, strengths, risks, decision 등)
      */
-    public JsonNode analyze(Applicant applicant, Resume resume, String resumePlainText) throws Exception {
+    public JsonNode analyze(
+            Applicant applicant,
+            Resume resume,
+            String resumePlainText,
+            String jobCriteriaOrNull
+    ) throws Exception {
         if (apiKey == null || apiKey.isBlank()) {
             throw new IllegalStateException(
                     "GOOGLE_API_KEY가 비어 있습니다. GitHub Secrets / 배포 환경에 키를 설정하세요.");
         }
 
         String clipped = clipText(resumePlainText);
-        String prompt = buildPrompt(applicant, resume, clipped);
+        String prompt = buildPrompt(applicant, resume, clipped, jobCriteriaOrNull);
 
         URI uri = UriComponentsBuilder.fromUriString("https://generativelanguage.googleapis.com")
                 .path("/v1beta/models/{model}:generateContent")
@@ -114,7 +120,15 @@ public class AtsGeminiResumeAnalysisClient {
                 + "\n\n[이후 텍스트는 길이 제한으로 잘렸습니다.]";
     }
 
-    private static String buildPrompt(Applicant applicant, Resume resume, String resumePlainText) {
+    private static String buildPrompt(
+            Applicant applicant,
+            Resume resume,
+            String resumePlainText,
+            String jobCriteriaOrNull
+    ) {
+        String jobBlock = buildJobCriteriaBlock(jobCriteriaOrNull);
+        String resumeBody = resumePlainText.isBlank() ? "(본문 없음)" : resumePlainText;
+
         return """
                 당신은 채용 담당자를 돕는 이력서 검토 어시스턴트입니다.
                 아래 "시스템에 등록된 지원자 정보"와 "이력서 PDF에서 추출한 텍스트"는 동일 지원 건으로 이미 서버에서 매칭된 데이터입니다.
@@ -129,11 +143,14 @@ public class AtsGeminiResumeAnalysisClient {
                 - 원본 파일명: %s
                 - S3 객체 키(참고용): %s
 
+                %s
+
                 [이력서 본문 텍스트]
                 %s
 
                 ---
                 반드시 유효한 JSON만 한 덩어리로 출력하세요. 다른 설명 문장은 쓰지 마세요.
+                overallScore·decision·summary·strengths·risks에는 HR이 제시한 직무 기준이 있다면 그 기준과의 적합도를 반드시 반영하세요.
                 키와 형식:
                 {
                   "overallScore": <0~100 정수>,
@@ -151,8 +168,24 @@ public class AtsGeminiResumeAnalysisClient {
                 nullToDash(applicant.getPhone()),
                 nullToDash(resume.getOriginalFileName()),
                 nullToDash(resume.getS3ObjectKey()),
-                resumePlainText.isBlank() ? "(본문 없음)" : resumePlainText
+                jobBlock,
+                resumeBody
         );
+    }
+
+    private static String buildJobCriteriaBlock(String jobCriteriaOrNull) {
+        if (jobCriteriaOrNull != null && !jobCriteriaOrNull.isBlank()) {
+            return """
+                    [HR이 이번 분석을 위해 입력한 평가 기준·채용 직무]
+                    """ + jobCriteriaOrNull.strip() + """
+
+                    위 직무·요구사항에 대한 적합도(역할·기술스택·경력의 부합 여부, 전환 가능성)를 overallScore, summary, strengths, risks, decision에 분명히 녹이세요.
+                    """;
+        }
+        return """
+                [평가 직무 기준]
+                (별도 입력 없음) 일반적인 채용 검토 관점에서 이력서의 완성도·경력·리스크를 평가하세요.
+                """;
     }
 
     private static String nullToDash(String s) {

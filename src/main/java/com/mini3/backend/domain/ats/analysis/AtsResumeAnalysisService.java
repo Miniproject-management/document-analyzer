@@ -39,11 +39,11 @@ public class AtsResumeAnalysisService {
     private final AtsGeminiResumeAnalysisClient atsGeminiResumeAnalysisClient;
     private final ObjectMapper objectMapper;
 
-    @Value("${app.gemini.model:gemini-1.5-flash}")
+    @Value("${app.gemini.model:gemini-2.5-flash}")
     private String geminiModelId;
 
     @Transactional
-    public AtsAnalysisDto.AnalyzeResult analyzeApplicantResume(Long applicantId) {
+    public AtsAnalysisDto.AnalyzeResult analyzeApplicantResume(Long applicantId, String jobCriteriaSnapshot) {
         Applicant applicant = applicantRepository.findById(applicantId)
                 .orElseThrow(() -> new EntityNotFoundException("지원자를 찾을 수 없습니다."));
         Resume resume = resumeRepository.findFirstByApplicant_ApplicantIdOrderByCreatedAtDesc(applicantId)
@@ -52,33 +52,34 @@ public class AtsResumeAnalysisService {
         if (!resume.getApplicant().getApplicantId().equals(applicant.getApplicantId())) {
             return failResult(
                     resume,
-                    "이력서 레코드가 해당 지원자와 연결되어 있지 않습니다. 데이터 정합성을 확인하세요.");
+                    "이력서 레코드가 해당 지원자와 연결되어 있지 않습니다. 데이터 정합성을 확인하세요.",
+                    jobCriteriaSnapshot);
         }
 
         if (resume.getS3ObjectKey() == null || resume.getS3ObjectKey().isBlank()) {
-            return failResult(resume, "S3 객체 키가 없습니다. 제출 파이프라인을 확인하세요.");
+            return failResult(resume, "S3 객체 키가 없습니다. 제출 파이프라인을 확인하세요.", jobCriteriaSnapshot);
         }
 
         try {
             byte[] bytes = atsS3StorageService.getObjectBytes(resume.getS3ObjectKey());
             if (!isAcceptedPdf(bytes, resume.getOriginalFileName())) {
-                return failResult(resume, "PDF 파일만 분석할 수 있습니다. (시그니처 또는 확장자 확인)");
+                return failResult(resume, "PDF 파일만 분석할 수 있습니다. (시그니처 또는 확장자 확인)", jobCriteriaSnapshot);
             }
 
             String plain = atsPdfTextExtractor.extractText(bytes).trim();
             if (plain.isEmpty()) {
-                return failResult(resume, "PDF에서 추출한 텍스트가 비어 있습니다. 스캔 PDF이거나 인코딩 문제일 수 있습니다.");
+                return failResult(resume, "PDF에서 추출한 텍스트가 비어 있습니다. 스캔 PDF이거나 인코딩 문제일 수 있습니다.", jobCriteriaSnapshot);
             }
 
-            JsonNode node = atsGeminiResumeAnalysisClient.analyze(applicant, resume, plain);
-            ResumeAnalysis saved = persistSuccess(resume, node);
+            JsonNode node = atsGeminiResumeAnalysisClient.analyze(applicant, resume, plain, jobCriteriaSnapshot);
+            ResumeAnalysis saved = persistSuccess(resume, node, jobCriteriaSnapshot);
 
             return AtsAnalysisDto.AnalyzeResult.builder()
                     .message("분석이 완료되었습니다.")
                     .analysis(AtsAnalysisDto.Analysis.from(saved))
                     .build();
         } catch (Exception e) {
-            ResumeAnalysis saved = persistFailure(resume, truncate(e.getMessage()));
+            ResumeAnalysis saved = persistFailure(resume, truncate(e.getMessage()), jobCriteriaSnapshot);
             return AtsAnalysisDto.AnalyzeResult.builder()
                     .message("분석에 실패했습니다.")
                     .analysis(AtsAnalysisDto.Analysis.from(saved))
@@ -96,7 +97,8 @@ public class AtsResumeAnalysisService {
         return false;
     }
 
-    private ResumeAnalysis persistSuccess(Resume resume, JsonNode node) throws JsonProcessingException {
+    private ResumeAnalysis persistSuccess(Resume resume, JsonNode node, String jobCriteriaSnapshot)
+            throws JsonProcessingException {
         int score = clampScore(node.path("overallScore").asInt(0));
         String summary = node.path("summary").asText("").trim();
         String resultJson = objectMapper.writeValueAsString(node);
@@ -107,24 +109,26 @@ public class AtsResumeAnalysisService {
                 .summary(summary.isEmpty() ? "(요약 없음)" : summary)
                 .resultJson(resultJson)
                 .overallScore(score)
+                .jobCriteriaSnapshot(jobCriteriaSnapshot)
                 .analyzedAt(LocalDateTime.now())
                 .build();
         return resumeAnalysisRepository.save(analysis);
     }
 
-    private ResumeAnalysis persistFailure(Resume resume, String message) {
+    private ResumeAnalysis persistFailure(Resume resume, String message, String jobCriteriaSnapshot) {
         ResumeAnalysis analysis = ResumeAnalysis.builder()
                 .resume(resume)
                 .status(AnalysisStatus.FAILED)
                 .model(geminiModelId)
                 .failureMessage(message)
+                .jobCriteriaSnapshot(jobCriteriaSnapshot)
                 .analyzedAt(LocalDateTime.now())
                 .build();
         return resumeAnalysisRepository.save(analysis);
     }
 
-    private AtsAnalysisDto.AnalyzeResult failResult(Resume resume, String message) {
-        ResumeAnalysis saved = persistFailure(resume, message);
+    private AtsAnalysisDto.AnalyzeResult failResult(Resume resume, String message, String jobCriteriaSnapshot) {
+        ResumeAnalysis saved = persistFailure(resume, message, jobCriteriaSnapshot);
         return AtsAnalysisDto.AnalyzeResult.builder()
                 .message(message)
                 .analysis(AtsAnalysisDto.Analysis.from(saved))

@@ -47,6 +47,11 @@ public class ResumeAnalysis {
     @Column(name = "failure_message", length = 2000) // 실패 메시지
     private String failureMessage;
 
+    /** 분석 시점에 HR이 입력한 직무·평가 기준 스냅샷 (없으면 null) */
+    @Lob
+    @Column(name = "job_criteria_snapshot", columnDefinition = "TEXT")
+    private String jobCriteriaSnapshot;
+
     @Column(name = "analyzed_at") // 분석 일시
     private LocalDateTime analyzedAt;
 

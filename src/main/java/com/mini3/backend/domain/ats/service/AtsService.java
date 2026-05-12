@@ -115,7 +115,19 @@ public class AtsService {
      * 최근 제출 이력서 기준 AI 분석. 구현은 {@link AtsResumeAnalysisService}에 위임한다.
      */
     @Transactional
-    public AtsAnalysisDto.AnalyzeResult analyzeApplicantResume(Long applicantId) {
-        return atsResumeAnalysisService.analyzeApplicantResume(applicantId);
+    public AtsAnalysisDto.AnalyzeResult analyzeApplicantResume(Long applicantId, String jobDescription) {
+        String jobCriteriaSnapshot = normalizeJobCriteria(jobDescription);
+        return atsResumeAnalysisService.analyzeApplicantResume(applicantId, jobCriteriaSnapshot);
+    }
+
+    private static String normalizeJobCriteria(String jobDescription) {
+        if (jobDescription == null) {
+            return null;
+        }
+        String t = jobDescription.strip();
+        if (t.isEmpty()) {
+            return null;
+        }
+        return t.length() > 3000 ? t.substring(0, 3000) : t;
     }
 }
