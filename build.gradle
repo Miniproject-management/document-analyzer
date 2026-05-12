@@ -24,8 +24,6 @@ repositories {
 dependencies {
     implementation platform('software.amazon.awssdk:bom:2.28.29')
     implementation 'software.amazon.awssdk:s3'
-    // BOM 에 s3-presigner 엔트리가 없을 수 있어 버전 명시 (platform 과 동일)
-    implementation 'software.amazon.awssdk:s3-presigner:2.28.29'
     implementation 'software.amazon.awssdk:sts'
 
     implementation 'org.springframework.boot:spring-boot-starter-web'
