@@ -8,6 +8,8 @@ import com.mini3.backend.domain.ats.dto.AtsResumePreviewDto;
 import com.mini3.backend.domain.ats.service.AtsService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -41,7 +43,17 @@ public class AtsHrController {
         return ResponseEntity.ok(atsService.getHrDashboardApplicantRows());
     }
 
-    /** S3 PDF 미리보기용 단기 URL (프론트 iframe / 새 탭) */
+    /** PDF 바이트 (프론트에서 fetch + Blob URL 로 iframe 표시) */
+    @GetMapping(value = "/{applicantId}/resume/file", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> getResumeFile(@PathVariable Long applicantId) {
+        byte[] pdf = atsService.getResumePdfBytes(applicantId);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"resume.pdf\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdf);
+    }
+
+    /** S3 PDF 미리보기용 단기 URL (선택: 새 탭 직접 열기 등) */
     @GetMapping("/{applicantId}/resume/preview-url")
     public ResponseEntity<AtsResumePreviewDto> getResumePreviewUrl(@PathVariable Long applicantId) {
         Duration ttl = Duration.ofMinutes(Math.max(1, resumePreviewPresignMinutes));

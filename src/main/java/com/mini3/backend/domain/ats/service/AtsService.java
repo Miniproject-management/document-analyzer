@@ -133,6 +133,21 @@ public class AtsService {
     }
 
     /**
+     * HR 화면용: 인증된 요청으로 PDF 바이트를 반환한다.
+     * (프리사인 URL이 Ingress/WAF 등에서 막히는 경우 Blob 미리보기로 사용)
+     */
+    public byte[] getResumePdfBytes(Long applicantId) {
+        applicantRepository.findById(applicantId)
+                .orElseThrow(() -> new EntityNotFoundException("지원자를 찾을 수 없습니다."));
+        Resume resume = resumeRepository.findFirstByApplicant_ApplicantIdOrderByCreatedAtDesc(applicantId)
+                .orElseThrow(() -> new EntityNotFoundException("제출된 이력서가 없습니다."));
+        if (resume.getS3ObjectKey() == null || resume.getS3ObjectKey().isBlank()) {
+            throw new IllegalStateException("S3 객체 키가 없습니다.");
+        }
+        return atsS3StorageService.getObjectBytes(resume.getS3ObjectKey());
+    }
+
+    /**
      * 최근 제출 이력서 기준 AI 분석. 구현은 {@link AtsResumeAnalysisService}에 위임한다.
      */
     @Transactional
