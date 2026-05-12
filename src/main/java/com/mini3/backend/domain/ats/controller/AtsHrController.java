@@ -4,6 +4,7 @@ import com.mini3.backend.domain.ats.dto.AtsAnalysisDto;
 import com.mini3.backend.domain.ats.dto.AtsAnalyzeRequest;
 import com.mini3.backend.domain.ats.dto.AtsApplicantDto;
 import com.mini3.backend.domain.ats.dto.AtsHrDashboardDto;
+import com.mini3.backend.domain.ats.dto.AtsResumePreviewDto;
 import com.mini3.backend.domain.ats.service.AtsService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -14,7 +15,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.beans.factory.annotation.Value;
 
+import java.time.Duration;
 import java.util.List;
 
 @RestController
@@ -23,6 +26,9 @@ import java.util.List;
 public class AtsHrController {
 
     private final AtsService atsService;
+
+    @Value("${app.ats.resume-preview-presign-minutes:15}")
+    private int resumePreviewPresignMinutes;
 
     @GetMapping // 지원자 목록 조회
     public ResponseEntity<List<AtsApplicantDto.ListItem>> getApplicants() {
@@ -33,6 +39,13 @@ public class AtsHrController {
     @GetMapping("/dashboard")
     public ResponseEntity<List<AtsHrDashboardDto.ApplicantRow>> getDashboardRows() {
         return ResponseEntity.ok(atsService.getHrDashboardApplicantRows());
+    }
+
+    /** S3 PDF 미리보기용 단기 URL (프론트 iframe / 새 탭) */
+    @GetMapping("/{applicantId}/resume/preview-url")
+    public ResponseEntity<AtsResumePreviewDto> getResumePreviewUrl(@PathVariable Long applicantId) {
+        Duration ttl = Duration.ofMinutes(Math.max(1, resumePreviewPresignMinutes));
+        return ResponseEntity.ok(atsService.getResumePreviewPresignedUrl(applicantId, ttl));
     }
 
     @GetMapping("/{applicantId}") // 한 명 클릭 시 상세 정보

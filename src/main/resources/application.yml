@@ -34,6 +34,9 @@ spring:
 app:
   gemini:
     model: ${GEMINI_MODEL:gemini-2.5-flash}
+  ats:
+    # HR 화면 PDF 미리보기용 S3 프리사인 URL 유효 시간(분)
+    resume-preview-presign-minutes: ${ATS_RESUME_PREVIEW_PRESIGN_MINUTES:15}
 
   # 브라우저가 document-analyzer 에 직접 붙을 때만 사용 (대부분은 백엔드 프록시 경유)
   cors:

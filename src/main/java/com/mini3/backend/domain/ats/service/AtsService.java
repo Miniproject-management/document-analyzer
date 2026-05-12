@@ -3,6 +3,7 @@ package com.mini3.backend.domain.ats.service;
 import com.mini3.backend.domain.ats.dto.AtsAnalysisDto;
 import com.mini3.backend.domain.ats.dto.AtsApplicantDto;
 import com.mini3.backend.domain.ats.dto.AtsHrDashboardDto;
+import com.mini3.backend.domain.ats.dto.AtsResumePreviewDto;
 import com.mini3.backend.domain.ats.dto.AtsSubmitDto;
 import com.mini3.backend.domain.ats.entity.Applicant;
 import com.mini3.backend.domain.ats.entity.Resume;
@@ -20,6 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.exception.SdkException;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.List;
 
 @Service
@@ -109,6 +111,25 @@ public class AtsService {
                 });
 
         return builder.build();
+    }
+
+    /**
+     * 최신 이력서 PDF를 브라우저에서 열 수 있도록 S3 프리사인 GET URL을 발급한다.
+     */
+    public AtsResumePreviewDto getResumePreviewPresignedUrl(Long applicantId, Duration ttl) {
+        applicantRepository.findById(applicantId)
+                .orElseThrow(() -> new EntityNotFoundException("지원자를 찾을 수 없습니다."));
+        Resume resume = resumeRepository.findFirstByApplicant_ApplicantIdOrderByCreatedAtDesc(applicantId)
+                .orElseThrow(() -> new EntityNotFoundException("제출된 이력서가 없습니다."));
+        if (resume.getS3ObjectKey() == null || resume.getS3ObjectKey().isBlank()) {
+            throw new IllegalStateException("S3 객체 키가 없습니다.");
+        }
+        String url = atsS3StorageService.presignGetObjectUrl(resume.getS3ObjectKey(), ttl);
+        int seconds = (int) Math.min(Integer.MAX_VALUE, Math.max(60, ttl.getSeconds()));
+        return AtsResumePreviewDto.builder()
+                .url(url)
+                .expiresInSeconds(seconds)
+                .build();
     }
 
     /**

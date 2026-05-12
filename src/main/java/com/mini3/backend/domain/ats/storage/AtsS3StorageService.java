@@ -8,8 +8,11 @@ import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -24,6 +27,7 @@ public class AtsS3StorageService {
     private static final Pattern SAFE_NAME = Pattern.compile("[^a-zA-Z0-9._-]");
 
     private final S3Client s3Client;
+    private final S3Presigner s3Presigner;
 
     @Value("${cloud.aws.s3.bucket}")
     private String bucket;
@@ -72,6 +76,26 @@ public class AtsS3StorageService {
         } catch (IOException e) {
             throw new IllegalStateException("S3 객체를 읽지 못했습니다.", e);
         }
+    }
+
+    /**
+     * 브라우저 PDF 미리보기용 단기 GET URL (프리사인). 키는 서버에서만 검증한다.
+     */
+    public String presignGetObjectUrl(String objectKey, Duration ttl) {
+        if (objectKey == null || objectKey.isBlank()) {
+            throw new IllegalArgumentException("S3 객체 키가 없습니다.");
+        }
+        GetObjectRequest get = GetObjectRequest.builder()
+                .bucket(bucket)
+                .key(objectKey.strip())
+                .responseContentType("application/pdf")
+                .responseContentDisposition("inline; filename=\"resume.pdf\"")
+                .build();
+        GetObjectPresignRequest presign = GetObjectPresignRequest.builder()
+                .signatureDuration(ttl)
+                .getObjectRequest(get)
+                .build();
+        return s3Presigner.presignGetObject(presign).url().toExternalForm();
     }
 
     private static String sanitizeFileName(String name) {
