@@ -9,8 +9,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout document-analyzer
         uses: actions/checkout@v4
+
+      # GlobalExceptionHandler 등 global 패키지 — document-analyzer build.gradle 이 참조
+      - name: Checkout management-back (shared global)
+        uses: actions/checkout@v4
+        with:
+          repository: Miniproject-management/management-back
+          path: management-back
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: AWS Login
         uses: aws-actions/configure-aws-credentials@v4

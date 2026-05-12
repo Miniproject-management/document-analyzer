@@ -1,3 +1,7 @@
+# management-back 의 application.yml 과 동일 키·주석 구조 (spring.application.name 만 이 서비스용).
+# Postman: 예전과 동일하게 백엔드(Ingress) URL + /api/public/... , /api/hr/applicants/... 사용
+# (management-back 의 document-analyzer 프록시가 이 인스턴스로 전달).
+
 server:
   port: 8080
 
@@ -30,6 +34,14 @@ spring:
 app:
   gemini:
     model: ${GEMINI_MODEL:gemini-2.5-flash}
+
+  # 브라우저가 document-analyzer 에 직접 붙을 때만 사용 (대부분은 백엔드 프록시 경유)
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://k8s-miniproj-appingre-81c01d55c9-1855530779.ap-northeast-2.elb.amazonaws.com}
+
+# 백엔드 JwtProvider 와 동일 시크릿이면 Bearer 검증 가능(직접 호출 시). 프록시만 쓰면 생략 가능.
+jwt:
+  secret: ${JWT_SECRET:mysecretkeymysecretkeymysecretkey123456}
 
 cloud:
   aws:
