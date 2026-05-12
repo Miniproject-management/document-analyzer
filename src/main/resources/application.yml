@@ -25,12 +25,14 @@ spring:
       genai:
         api-key: ${GOOGLE_API_KEY:}
 
+# Gemini 이력서 분석 (Google AI Studio API 키 → spring.ai.google.genai.api-key 와 동일 변수 사용)
+# gemini-1.5-flash 는 일부 키/지역에서 404(NOT_FOUND) — 필요 시 GEMINI_MODEL 로 재정의
 app:
   gemini:
     model: ${GEMINI_MODEL:gemini-2.5-flash}
 
 cloud:
   aws:
-    region: ap-northeast-2
+    region: ap-northeast-2 #수정 필요
     s3:
       bucket: miniproject-management-dev-files-804540872991
