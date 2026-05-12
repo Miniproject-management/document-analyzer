@@ -2,7 +2,11 @@ name: Build & Push ATS Image
 
 on:
   push:
+<<<<<<< HEAD
     branches: ["develop", "main"]
+=======
+    branches: ["main"]
+>>>>>>> eab4c353ab2d42d24573afb38aa91dce0c3ed4f7
   workflow_dispatch:
 
 jobs:
@@ -19,7 +23,7 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-northeast-2
-
+ 
       - name: Login to ECR
         uses: aws-actions/amazon-ecr-login@v2
 
