@@ -1,0 +1,40 @@
+name: Build & Push ATS Image
+
+on:
+  push:
+    branches: ["develop"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: AWS Login
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build Docker image (document-analyzer)
+        run: |
+          docker build \
+            -f src/main/java/com/mini3/backend/domain/ats/Dockerfile \
+            -t document-analyzer:latest \
+            src/main/java/com/mini3/backend/domain/ats
+
+      - name: Tag image
+        run: |
+          docker tag document-analyzer:latest \
+          804540872991.dkr.ecr.ap-northeast-2.amazonaws.com/miniproject-management/document-analyzer:latest
+
+      - name: Push image
+        run: |
+          docker push 804540872991.dkr.ecr.ap-northeast-2.amazonaws.com/miniproject-management/document-analyzer:latest
