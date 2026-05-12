@@ -2,18 +2,7 @@ name: Build & Push ATS Image
 
 on:
   push:
-<<<<<<< HEAD
-    branches:
-      - main
-      - develop
-=======
-<<<<<<< HEAD
     branches: ["main"]
-=======
-    branches: ["main"]
->>>>>>> eab4c353ab2d42d24573afb38aa91dce0c3ed4f7
->>>>>>> origin/main
-  workflow_dispatch:
 
 jobs:
   build:
