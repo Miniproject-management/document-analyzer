@@ -1,20 +1,18 @@
-# Build stage
-FROM gradle:8.5-jdk17 AS builder
+# CI(GitHub Actions) → ECR → 배포만 사용. 로컬 Gradle/gradlew 빌드 불필요.
+# 빌드는 이 이미지 안에서만 수행된다.
+FROM gradle:8.12-jdk17 AS builder
 
 WORKDIR /app
 
-# 현재 프로젝트 전체 복사 (dto/entity/repository 포함)
-COPY . .
+COPY build.gradle settings.gradle ./
+COPY src src
 
-# Gradle 빌드
-RUN gradle clean build -x test
+RUN gradle clean bootJar -x test --no-daemon
 
-# Run stage
-FROM eclipse-temurin:17-jdk
+FROM eclipse-temurin:17-jre
 
 WORKDIR /app
 
-# jar 복사
 COPY --from=builder /app/build/libs/*.jar app.jar
 
 EXPOSE 8080

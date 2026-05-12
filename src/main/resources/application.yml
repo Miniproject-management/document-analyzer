@@ -1,0 +1,36 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: document-analyzer
+
+  datasource:
+    url: jdbc:mysql://miniproject-management-mysql-2team.c3owgi2swfvk.ap-northeast-2.rds.amazonaws.com:3306/mydb?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: ${DB_USERNAME:admin}
+    password: ${DB_PASSWORD:admin}
+    driver-class-name: org.mariadb.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+        default_batch_fetch_size: 100
+    open-in-view: false
+
+  ai:
+    google:
+      genai:
+        api-key: ${GOOGLE_API_KEY:}
+
+app:
+  gemini:
+    model: ${GEMINI_MODEL:gemini-2.5-flash}
+
+cloud:
+  aws:
+    region: ap-northeast-2
+    s3:
+      bucket: miniproject-management-dev-files-804540872991

@@ -1,5 +1,6 @@
-**/*.java
 .git
-__pycache__
-*.pyc
-.venv
+.gradle
+**/build
+.idea
+*.iml
+.DS_Store

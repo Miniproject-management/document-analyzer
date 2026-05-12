@@ -2,7 +2,7 @@ name: Build & Push ATS Image
 
 on:
   push:
-    branches: ["develop"]
+    branches: ["develop", "main"]
   workflow_dispatch:
 
 jobs:
@@ -25,10 +25,7 @@ jobs:
 
       - name: Build Docker image (document-analyzer)
         run: |
-          docker build \
-            -f src/main/java/com/mini3/backend/domain/ats/Dockerfile \
-            -t document-analyzer:latest \
-            src/main/java/com/mini3/backend/domain/ats
+          docker build -f Dockerfile -t document-analyzer:latest .
 
       - name: Tag image
         run: |
