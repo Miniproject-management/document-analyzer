@@ -1,0 +1,26 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:document-analyzer-test;MODE=MariaDB;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+
+app:
+  cors:
+    allowed-origins: http://localhost
+
+jwt:
+  secret: test-secret-key-test-secret-key-test-secret-key-123456
+
+cloud:
+  aws:
+    region: ap-northeast-2
+    s3:
+      bucket: test-bucket
+

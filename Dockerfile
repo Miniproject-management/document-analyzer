@@ -6,6 +6,8 @@ WORKDIR /app
 
 COPY build.gradle settings.gradle ./
 COPY src src
+# management-back 체크아웃 전체 (Gradle 은 GlobalExceptionHandler·exception 만 컴파일)
+COPY management-back management-back
 
 RUN gradle clean bootJar -x test --no-daemon
 

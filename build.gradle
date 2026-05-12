@@ -25,6 +25,30 @@ repositories {
     mavenCentral()
 }
 
+// management-back 과 동일한 GlobalExceptionHandler 사용 (소스만 링크, domain 은 제외해 중복 방지)
+def managementBackRoots = [
+        file("${rootDir}/../management-back"),
+        file("${rootDir}/management-back")
+].findAll { new File(it, "src/main/java/com/mini3/backend/global/GlobalExceptionHandler.java").exists() }
+
+if (managementBackRoots.isEmpty()) {
+    throw new GradleException(
+            "management-back 저장소가 필요합니다. " +
+                    "(1) mini4Project 처럼 document-analyzer 와 형제 디렉터리로 두거나, " +
+                    "(2) document-analyzer 루트에 management-back/ 체크아웃(GitHub Actions·Docker 빌드)."
+    )
+}
+def linkedMbJava = file("${managementBackRoots[0]}/src/main/java")
+
+tasks.named('compileJava', JavaCompile) {
+    source(
+            fileTree(dir: linkedMbJava, includes: [
+                    'com/mini3/backend/global/GlobalExceptionHandler.java',
+                    'com/mini3/backend/global/exception/**/*.java'
+            ])
+    )
+}
+
 dependencies {
     implementation platform('software.amazon.awssdk:bom:2.28.29')
     implementation 'software.amazon.awssdk:s3'
@@ -34,6 +58,12 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
 
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+
+    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 
@@ -42,6 +72,8 @@ dependencies {
     implementation 'org.apache.pdfbox:pdfbox:2.0.31'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testRuntimeOnly 'com.h2database:h2'
 }
 
 tasks.named('test') {
