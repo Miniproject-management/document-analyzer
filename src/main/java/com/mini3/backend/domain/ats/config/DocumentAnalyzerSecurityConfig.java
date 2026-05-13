@@ -32,7 +32,7 @@ public class DocumentAnalyzerSecurityConfig {
                         s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/health").permitAll()
+                        .requestMatchers("/api/health").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/api/hr/**").authenticated()
                         .anyRequest().denyAll()
